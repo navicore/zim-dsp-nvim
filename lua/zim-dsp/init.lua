@@ -2,7 +2,6 @@ local M = {}
 
 -- Default configuration
 M.config = {
-  zim_dsp_path = "zim-dsp",
   auto_reload = true,
   float_preview = true,
 }
@@ -11,9 +10,26 @@ M.config = {
 local current_job = nil
 local current_file = nil
 
+-- Get the path to the zim-dsp binary
+local function get_zim_dsp_path()
+  return vim.fn.stdpath("data") .. "/zim-dsp-bin/zim-dsp"
+end
+
+-- Check if zim-dsp is available
+local function check_zim_dsp()
+  local path = get_zim_dsp_path()
+  return vim.fn.executable(path) == 1
+end
+
+
 -- Setup function
 function M.setup(opts)
   M.config = vim.tbl_extend("force", M.config, opts or {})
+  
+  -- Check if zim-dsp is available
+  if not check_zim_dsp() then
+    vim.notify("[zim-dsp] Binary not found. Run :Lazy build zim-dsp-nvim to build it.", vim.log.levels.WARN)
+  end
   
   -- Set up autocmds
   vim.api.nvim_create_augroup("ZimDsp", { clear = true })
@@ -43,9 +59,15 @@ end
 
 -- Play a file
 function M.play_file(file)
+  -- Ensure zim-dsp is available
+  if not check_zim_dsp() then
+    vim.api.nvim_err_writeln("zim-dsp not found. Run :Lazy build zim-dsp-nvim to build it.")
+    return
+  end
+  
   M.stop()
   
-  local cmd = { M.config.zim_dsp_path, "play", file }
+  local cmd = { get_zim_dsp_path(), "play", file }
   
   current_job = vim.fn.jobstart(cmd, {
     on_exit = function(_, exit_code)
@@ -140,8 +162,14 @@ function M.inspect()
     return
   end
   
+  -- Ensure zim-dsp is available
+  if not check_zim_dsp() then
+    vim.api.nvim_err_writeln("zim-dsp not found. Run :Lazy build zim-dsp-nvim to build it.")
+    return
+  end
+  
   -- Create a temporary REPL session to inspect the module
-  local cmd = { M.config.zim_dsp_path, "repl" }
+  local cmd = { get_zim_dsp_path(), "repl" }
   local output = {}
   
   local job = vim.fn.jobstart(cmd, {

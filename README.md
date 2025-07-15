@@ -8,6 +8,7 @@ Neovim plugin for [zim-dsp](https://github.com/navicore/zim-dsp) modular synthes
 - Play patches or selected blocks with `<Enter>`
 - Live coding support with hot-reload
 - Module introspection
+- Automatic building from source
 
 ## Installation
 
@@ -17,18 +18,10 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
   "navicore/zim-dsp-nvim",
   ft = "zim",
-  config = function()
-    require("zim-dsp").setup()
-  end,
-}
-```
-
-Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
-
-```lua
-use {
-  "navicore/zim-dsp-nvim",
-  ft = "zim",
+  build = "./build.lua",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+  },
   config = function()
     require("zim-dsp").setup()
   end,
@@ -38,7 +31,18 @@ use {
 ## Requirements
 
 - Neovim 0.5+
-- [zim-dsp](https://github.com/navicore/zim-dsp) installed and in PATH
+- Rust toolchain (cargo) for building zim-dsp
+- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
+- zim-dsp source code at `~/git/navicore/zim-dsp`
+
+## Building
+
+The plugin builds zim-dsp from source on installation. The binary is installed to `~/.local/share/nvim/zim-dsp-bin/`.
+
+To manually rebuild:
+```vim
+:Lazy build zim-dsp-nvim
+```
 
 ## Usage
 
@@ -54,14 +58,12 @@ In `.zim` files:
 - `<Enter>` - Play selected lines or current block
 - `<Leader>zs` - Stop playback
 - `<Leader>zi` - Inspect module under cursor
+- `<Leader>zr` - Reload current patch
 
 ### Configuration
 
 ```lua
 require("zim-dsp").setup({
-  -- Path to zim-dsp executable
-  zim_dsp_path = "zim-dsp",
-  
   -- Auto-reload on save
   auto_reload = true,
   
