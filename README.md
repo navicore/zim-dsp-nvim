@@ -1,5 +1,11 @@
 # zim-dsp-nvim
 
+# BROKEN
+
+# BROKEN
+
+# BROKEN
+
 Neovim plugin for [zim-dsp](https://github.com/navicore/zim-dsp) modular synthesizer patches.
 
 ## Features
