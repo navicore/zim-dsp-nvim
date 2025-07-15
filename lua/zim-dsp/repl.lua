@@ -78,29 +78,39 @@ function M.start()
   append_output("Starting Zim-DSP REPL...")
   
   repl_job = vim.fn.jobstart({zim_dsp_path, "repl"}, {
-    stdout_buffered = false,
-    stderr_buffered = false,
+    pty = true,  -- Use a pseudo-terminal for interactive programs
     on_stdout = function(_, data, _)
       if data then
-        for _, line in ipairs(data) do
-          if line ~= "" then
-            append_output(line)
+        vim.schedule(function()
+          for i, line in ipairs(data) do
+            -- Handle empty last line that vim often sends
+            if not (i == #data and line == "") then
+              -- Clean up the line (remove prompts, etc)
+              local cleaned = line:gsub("^> ", "")
+              if cleaned ~= "" and cleaned ~= ">" then
+                append_output(cleaned)
+              end
+            end
           end
-        end
+        end)
       end
     end,
     on_stderr = function(_, data, _)
       if data then
-        for _, line in ipairs(data) do
-          if line ~= "" then
-            append_output("[ERROR] " .. line)
+        vim.schedule(function()
+          for i, line in ipairs(data) do
+            if not (i == #data and line == "") then
+              append_output("[ERROR] " .. line)
+            end
           end
-        end
+        end)
       end
     end,
     on_exit = function(_, exit_code)
-      append_output(string.format("\nREPL exited with code %d", exit_code))
-      repl_job = nil
+      vim.schedule(function()
+        append_output(string.format("\nREPL exited with code %d", exit_code))
+        repl_job = nil
+      end)
     end,
   })
   
@@ -129,7 +139,12 @@ function M.send_line(line)
   
   if repl_job then
     append_output("\n>>> " .. line)
-    vim.fn.chansend(repl_job, line .. "\n")
+    local success = vim.fn.chansend(repl_job, line .. "\n")
+    if success == 0 then
+      append_output("[Failed to send command]")
+    end
+  else
+    append_output("[REPL not running]")
   end
 end
 
