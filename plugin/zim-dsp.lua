@@ -17,6 +17,14 @@ vim.api.nvim_create_user_command("ZimReload", function()
   require("zim-dsp").reload()
 end, {})
 
+vim.api.nvim_create_user_command("ZimRepl", function()
+  require("zim-dsp.repl").start()
+end, {})
+
+vim.api.nvim_create_user_command("ZimReplStop", function()
+  require("zim-dsp.repl").stop()
+end, {})
+
 -- Set up keymaps for zim files
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "zim",

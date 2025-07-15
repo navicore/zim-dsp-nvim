@@ -4,11 +4,15 @@ local M = {}
 M.config = {
   auto_reload = true,
   float_preview = true,
+  repl_mode = false,  -- Use REPL mode instead of file mode
 }
 
 -- State
 local current_job = nil
 local current_file = nil
+
+-- REPL module
+local repl = nil
 
 -- Get the path to the zim-dsp binary
 local function get_zim_dsp_path()
@@ -42,6 +46,20 @@ function M.setup(opts)
         if current_job and current_file == vim.fn.expand("%:p") then
           M.reload()
         end
+      end,
+    })
+  end
+  
+  -- Auto-start REPL if configured
+  if M.config.repl_mode and M.config.auto_start_repl then
+    vim.api.nvim_create_autocmd("FileType", {
+      group = "ZimDsp",
+      pattern = "zim",
+      callback = function()
+        if not repl then
+          repl = require("zim-dsp.repl")
+        end
+        repl.start()
       end,
     })
   end
@@ -104,43 +122,58 @@ end
 
 -- Play selected lines or current block
 function M.play_selection()
-  local utils = require("zim-dsp.utils")
-  
-  -- Get selected lines or current paragraph
-  local lines = {}
-  local mode = vim.fn.mode()
-  
-  if mode == "v" or mode == "V" then
-    lines = utils.get_visual_selection()
+  if M.config.repl_mode then
+    -- In REPL mode, evaluate line by line
+    if not repl then
+      repl = require("zim-dsp.repl")
+    end
+    
+    local mode = vim.fn.mode()
+    if mode == "v" or mode == "V" then
+      repl.eval_selection()
+    else
+      repl.eval_line(true)  -- advance to next line
+    end
   else
-    lines = utils.get_current_block()
+    -- In file mode, create a patch and play it
+    local utils = require("zim-dsp.utils")
+    
+    -- Get selected lines or current paragraph
+    local lines = {}
+    local mode = vim.fn.mode()
+    
+    if mode == "v" or mode == "V" then
+      lines = utils.get_visual_selection()
+    else
+      lines = utils.get_current_block()
+    end
+    
+    if #lines == 0 then
+      print("No lines to play")
+      return
+    end
+    
+    -- Create temporary file
+    local tmpfile = vim.fn.tempname() .. ".zim"
+    local f = io.open(tmpfile, "w")
+    if not f then
+      vim.api.nvim_err_writeln("Failed to create temporary file")
+      return
+    end
+    
+    for _, line in ipairs(lines) do
+      f:write(line .. "\n")
+    end
+    f:close()
+    
+    -- Play the temporary file
+    M.play_file(tmpfile)
+    
+    -- Clean up temp file after a delay
+    vim.defer_fn(function()
+      vim.fn.delete(tmpfile)
+    end, 1000)
   end
-  
-  if #lines == 0 then
-    print("No lines to play")
-    return
-  end
-  
-  -- Create temporary file
-  local tmpfile = vim.fn.tempname() .. ".zim"
-  local f = io.open(tmpfile, "w")
-  if not f then
-    vim.api.nvim_err_writeln("Failed to create temporary file")
-    return
-  end
-  
-  for _, line in ipairs(lines) do
-    f:write(line .. "\n")
-  end
-  f:close()
-  
-  -- Play the temporary file
-  M.play_file(tmpfile)
-  
-  -- Clean up temp file after a delay
-  vim.defer_fn(function()
-    vim.fn.delete(tmpfile)
-  end, 1000)
 end
 
 -- Reload current patch (stop and play again)
