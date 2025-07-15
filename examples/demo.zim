@@ -1,0 +1,33 @@
+# Zim-DSP Neovim Plugin Demo
+# 
+# Usage:
+# - Place cursor on any block and press Enter to play it
+# - Select multiple lines in visual mode and press Enter
+# - <Leader>zs to stop playback
+# - <Leader>zi with cursor on module name to inspect
+
+# Simple sine wave
+vco: osc sine 440
+out <- vco.sine
+
+# Filtered saw wave
+vco: osc saw 220
+vcf: filter 1000 0.5
+vcf.audio <- vco.saw
+out <- vcf.lp
+
+# Envelope example
+vco: osc sine 330
+env: envelope 0.1 0.5
+vca: vca 1.0
+vca.audio <- vco.sine
+vca.cv <- env.out
+out <- vca.out
+
+# LFO modulation
+carrier: osc sine 440
+lfo: osc sine 5
+vca: vca 1.0
+vca.audio <- carrier.sine
+vca.cv <- lfo.sine
+out <- vca.out
