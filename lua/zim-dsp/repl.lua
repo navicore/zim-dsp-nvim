@@ -68,14 +68,18 @@ function M.start()
     return
   end
   
+  ensure_output_window()  -- Create window first
+  
   local zim_dsp_path = vim.fn.stdpath("data") .. "/zim-dsp-bin/zim-dsp"
+  append_output("[DEBUG] Looking for binary at: " .. zim_dsp_path)
+  
   if vim.fn.executable(zim_dsp_path) == 0 then
     vim.api.nvim_err_writeln("zim-dsp not found. Run :Lazy build zim-dsp-nvim to build it.")
     return
   end
   
-  ensure_output_window()
   append_output("Starting Zim-DSP REPL...")
+  append_output("[DEBUG] Binary found, starting job...")
   
   repl_job = vim.fn.jobstart({zim_dsp_path, "repl"}, {
     pty = true,  -- Use a pseudo-terminal for interactive programs
@@ -116,6 +120,8 @@ function M.start()
   if repl_job <= 0 then
     vim.api.nvim_err_writeln("Failed to start REPL")
     repl_job = nil
+  else
+    append_output("[DEBUG] REPL started with job ID: " .. repl_job)
   end
 end
 
