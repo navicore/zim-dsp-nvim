@@ -82,14 +82,13 @@ function M.start()
     on_stdout = function(_, data, _)
       if data then
         vim.schedule(function()
+          -- Debug: show raw data
+          append_output("[DEBUG] Got " .. #data .. " lines")
           for i, line in ipairs(data) do
-            -- Handle empty last line that vim often sends
-            if not (i == #data and line == "") then
-              -- Clean up the line (remove prompts, etc)
-              local cleaned = line:gsub("^> ", "")
-              if cleaned ~= "" and cleaned ~= ">" then
-                append_output(cleaned)
-              end
+            append_output("[DEBUG] Line " .. i .. ": '" .. line .. "'")
+            -- Handle actual content
+            if line ~= "" then
+              append_output(line)
             end
           end
         end)
@@ -134,13 +133,14 @@ function M.send_line(line)
   if not repl_job then
     M.start()
     -- Wait a bit for REPL to start
-    vim.wait(100)
+    vim.wait(500)  -- Increased wait time
   end
   
   if repl_job then
     append_output("\n>>> " .. line)
-    local success = vim.fn.chansend(repl_job, line .. "\n")
-    if success == 0 then
+    local bytes_sent = vim.fn.chansend(repl_job, line .. "\n")
+    append_output("[DEBUG] Sent " .. bytes_sent .. " bytes")
+    if bytes_sent == 0 then
       append_output("[Failed to send command]")
     end
   else
